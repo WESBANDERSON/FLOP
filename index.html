@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Tool</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card-selector">
+            <div class="card-grid">
+                <!-- Card buttons will be generated here by JavaScript -->
+            </div>
+        </div>
+        <div class="analytics-display">
+            <h2 id="selected-cards-header"><span id="selected-cards-display"></span></h2>
+
+            <div class="probabilities">
+                <!-- Probabilities will be displayed here -->
+                <div class="spinner-container" id="loading-spinner" style="display: none;">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            <div class="flop-analysis">
+                <div class="best-flops">
+                    <h3>Best Flops</h3>
+                    <ul id="best-flops-list">
+                        <!-- Best flops listed here -->
+                    </ul>
+                </div>
+                <div class="worst-flops">
+                    <h3>Worst Flops</h3>
+                    <ul id="worst-flops-list">
+                        <!-- Worst flops listed here -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Moved Info Icon and Explanation outside main container for fixed positioning -->
+    <span class="info-icon" id="prob-info-icon" title="Click for explanation">(?)</span>
+    <div class="explanation" id="probability-explanation" style="display: none;">
+         <p>These percentages show the likelihood of making each hand type (<strong>best 5-card hand</strong>) using your <strong>two hole cards</strong> combined with the <strong>three flop cards</strong>. It iterates through all <strong>19,600 possible flops</strong>.</p>
+         <p>For example, if you hold a pair, the 'Pair' percentage indicates the chance that the flop does <strong>not improve</strong> your hand to Two Pair or better.</p>
+    </div>
+
+    <!-- Remove pokersolver CDN link - Worker fetches its own library -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/pokersolver@2.1.4/pokersolver.min.js"></script> -->
+    <script src="script.js"></script>
+</body>
+</html> 

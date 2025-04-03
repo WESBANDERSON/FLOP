@@ -1,0 +1,453 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    /* Use a cleaner system font stack */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    height: 100%;
+    overflow: hidden; /* Prevent scrolling */
+    /* Dark Mode Background */
+    background-color: #1a1a1a; /* Dark grey */
+    color: #e0e0e0; /* Light grey text */
+}
+
+.container {
+    display: flex;
+    height: 100vh; /* Full viewport height */
+}
+
+.card-selector {
+    /* Adjust flex property to make it narrower */
+    /* flex: 1; */
+    flex: 0.7;
+    padding: 25px;
+    /* Dark Mode Card Selector Background */
+    background-color: #2c2c2c; /* Slightly lighter dark */
+    border-right: 1px solid #444; /* Lighter border */
+    overflow-y: auto; 
+    /* Add flex properties for centering */
+    display: flex;
+    flex-direction: column; /* Stack potential children vertically */
+    justify-content: center; /* Center vertically */
+}
+
+.card-selector h2 {
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    color: #555;
+}
+
+#selected-cards-display span {
+    font-size: 1.2em; /* Maybe make slightly larger? */
+    margin-right: 10px; /* Increase spacing a bit */
+}
+
+/* Style for the placeholder '?' specifically if needed */
+#selected-cards-display span.placeholder-span {
+     font-size: 1.2em; 
+     margin-right: 10px;
+     color: #888;
+}
+
+/* New styles for the large centered header */
+#selected-cards-header {
+    text-align: center;
+    font-size: 4.5em; /* Make much larger */
+    margin-bottom: 40px; /* Increase space below if needed */
+    /* Ensure enough height if line breaks occur */
+    min-height: 1.2em; 
+    color: #f5f5f5; /* Brighter white for header */
+}
+
+/* Adjust size/alignment of the cards within the header */
+#selected-cards-display span {
+    font-size: 1em; /* Inherit from header or set explicitly large */
+    margin-right: 15px; /* Increase spacing */
+    vertical-align: middle; /* Align emoji nicely with text */
+}
+
+/* Adjust placeholder size within header */
+#selected-cards-display span.placeholder-span {
+     font-size: 1em; /* Match card size */
+     margin-right: 15px;
+     color: #888; /* Keep placeholder grey */
+     vertical-align: middle;
+}
+
+.analytics-display {
+    flex: 2;
+    padding: 25px;
+    overflow-y: auto; 
+    display: flex;
+    flex-direction: column;
+    /* Remove vertical centering for the whole block */
+    /* justify-content: center; */
+}
+
+.analytics-display h2 {
+    margin-bottom: 10px; /* Reduced margin below h2 */
+}
+
+h2, h3 {
+    margin-top: 0;
+    color: #e0e0e0;
+    font-weight: 600;
+}
+
+h3 {
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #c0c0c0; /* Slightly dimmer */
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px; /* Slightly reduced gap */
+    margin-top: 20px;
+}
+
+.card-button {
+    padding: 12px 8px; /* Adjusted padding */
+    font-size: 1.1em; /* Slightly smaller */
+    text-align: center;
+    /* Dark mode buttons */
+    border: 1px solid #555; 
+    border-radius: 5px;
+    background-color: #3a3a3a; 
+    color: #e0e0e0; /* Light text on button */
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.card-button:hover {
+    background-color: #4a4a4a;
+    border-color: #777;
+}
+
+.card-button.selected {
+    /* Adjust selected colors */
+    background-color: #0056b3; /* Keep blue? Or maybe a lighter blue? */
+    color: white;
+    border-color: #007bff;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+}
+
+/* Adjust text shadow for selected cards if needed */
+.card-button.selected .suit-h,
+.card-button.selected .suit-d,
+.card-button.selected .suit-c {
+     text-shadow: none; /* Remove shadow if base text is white */
+}
+
+.probabilities {
+    /* Adjust top padding/margin if needed now that h2 is gone */
+    /* margin-top: 20px; */ /* Example */
+    padding-top: 10px; /* Add some padding at the top */
+    /* flex-grow: 1; */ 
+    margin-bottom: 20px; 
+    /* Add overflow handling if content exceeds space */
+    overflow-y: auto; 
+    position: relative; /* Needed for absolute positioning of spinner */
+}
+
+.flop-analysis {
+    display: flex;
+    gap: 25px; 
+    /* flex-grow: 1; */ /* Remove this to stop it from expanding vertically */
+    /* Set a specific height or let content dictate height */
+    flex-shrink: 0; /* Prevent shrinking too much */
+}
+
+.best-flops,
+.worst-flops {
+    flex: 1;
+    /* Dark mode flop boxes */
+    background-color: #2c2c2c;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    border: 1px solid #444;
+}
+
+#best-flops-list,
+#worst-flops-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px; 
+    overflow-y: auto;
+}
+
+#best-flops-list li,
+#worst-flops-list li {
+    padding: 8px 5px; /* Increased padding */
+    border-bottom: 1px solid #404040; /* Darker border */
+    font-size: 0.95em;
+}
+
+#best-flops-list li:last-child,
+#worst-flops-list li:last-child {
+    border-bottom: none;
+}
+
+/* Styles for Flop Groups */
+.flop-group {
+    margin-bottom: 5px; /* Space between groups */
+}
+
+.flop-group-summary {
+    padding: 5px 0; 
+    /* border-bottom: 1px solid #404040; */ /* Remove border */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.flop-group-rep {
+    /* Style for the representative flop */
+    font-weight: 500;
+}
+
+.flop-group-name {
+    color: #aaa;
+    font-size: 0.9em;
+}
+
+/* Re-add rule for variation count */
+.flop-group-count {
+     color: #888;
+     font-size: 0.9em;
+     margin-left: auto; /* Push count (and icon following it) to the right */
+}
+
+.expand-icon {
+    font-size: 0.8em;
+    color: #aaa;
+    transition: transform 0.2s ease-in-out;
+    /* margin-left: auto; */ /* Remove - count pushes it now */
+}
+
+.flop-variations li {
+    padding: 4px 0 4px 5px; 
+    font-size: 0.9em;
+    color: #bbb; 
+    /* border-bottom: 1px dashed #383838; */ /* Remove border */
+}
+
+.flop-variations li:last-child {
+     /* border-bottom: none; */ /* Rule no longer needed */
+}
+
+/* Remove Flop Group Percentage Bars Styles */
+/*
+.flop-group-bar-container {
+    display: flex;
+    align-items: center;
+    height: 12px; 
+    margin: 2px 0 8px 0; 
+    background-color: #444;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.flop-group-bar-value {
+    font-size: 0.75em;
+    color: #ddd; 
+    padding: 0 5px;
+    z-index: 1; 
+    mix-blend-mode: difference; 
+    line-height: 12px; 
+}
+
+.flop-group-bar {
+    height: 100%;
+    background-color: #0b5ed7; 
+    border-radius: 3px;
+    width: 0%; 
+    transition: width 0.5s ease-in-out; 
+    margin-left: -55px; 
+    padding-left: 55px; 
+}
+*/
+
+/* Remove Suit colors - using emoji now */
+/* .suit-s { color: black; } */
+/* .suit-h { color: #d90000; } */
+/* .suit-d { color: #0052cc; } */
+/* .suit-c { color: #008000; } */
+
+/* Add space between rank and suit */
+.card-button span,
+#selected-cards-display span span,
+#best-flops-list li span,
+#worst-flops-list li span {
+    margin-left: 2px;
+}
+
+/* Probability Items Styling */
+.probability-item {
+    margin-bottom: 16px; /* Increased spacing further */
+    display: flex; 
+    align-items: center;
+    font-size: 1.0em; /* Increased font size */
+}
+
+.probability-label {
+    width: 125px; /* Increased width */
+    font-weight: 500; 
+    flex-shrink: 0; 
+    color: #c0c0c0;
+}
+
+.probability-value {
+    margin-left: 5px; 
+    font-weight: 500;
+    width: 65px; /* Increased width */
+    text-align: right;
+    flex-shrink: 0;
+    color: #b0b0b0;
+}
+
+.probability-bar-container {
+    flex-grow: 1; 
+    background-color: #444;
+    height: 22px; /* Increased height */
+    border-radius: 4px; 
+    margin-left: 10px;
+    overflow: hidden; 
+}
+
+.probability-bar {
+    height: 100%;
+    background-color: #0d6efd; 
+    border-radius: 4px; 
+    width: 0%; 
+    transition: width 0.5s ease-in-out;
+}
+
+/* Info icon and explanation */
+.info-icon {
+    /* Position fixed in bottom right */
+    position: fixed;
+    bottom: 15px;
+    /* left: 15px; */
+    right: 15px; /* Move to right */
+    z-index: 100; 
+
+    font-size: 1.5em; 
+    cursor: pointer;
+    /* Set color to white */
+    color: #ffffff; 
+    font-weight: bold;
+    /* Remove background/border styling */
+    /* background-color: rgba(255, 255, 255, 0.8); */
+    /* padding: 5px 10px; */
+    /* border-radius: 50%; */
+    /* border: 1px solid #ccc; */
+    line-height: 1;
+}
+
+.explanation {
+    /* Position fixed near bottom right, above icon */
+    position: fixed;
+    bottom: 45px; /* Adjust to position above icon */
+    /* left: 15px; */
+    right: 15px; /* Move to right */
+    z-index: 99; 
+    width: 300px; 
+
+    background-color: #353c4a; /* Dark blueish grey */
+    border: 1px solid #5a6780; 
+    padding: 15px 20px; 
+    border-radius: 6px;
+    font-size: 0.9em;
+    color: #d0d8e8;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+
+.explanation p {
+    margin: 8px 0; /* Adjust spacing inside */
+}
+
+/* Loading Spinner */
+.spinner-container {
+    position: absolute; /* Position relative to the analytics display or a specific container */
+    top: 50px; /* Adjust as needed */
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    /* background: rgba(255, 255, 255, 0.8); Optional: semi-transparent overlay */
+}
+
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.1); /* Lighter base border */
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border-left-color: #4da3ff; /* Match lighter blue */
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    body, html {
+        overflow-y: auto; /* Enable vertical scrolling on small screens */
+    }
+
+    .container {
+        flex-direction: column; /* Stack sections vertically */
+        height: auto; /* Allow height to grow */
+    }
+
+    .card-selector {
+        flex: 1; /* Allow it to take full width */
+        border-right: none; /* Remove side border */
+        border-bottom: 1px solid #444; /* Add bottom border */
+        max-height: 50vh; /* Limit height to prevent pushing content too far */
+    }
+
+    .analytics-display {
+        flex: 1; /* Allow it to take full width */
+    }
+
+    #selected-cards-header {
+        font-size: 3em; /* Reduce header size */
+        margin-bottom: 20px;
+    }
+    
+    /* Stack probability columns */
+    .probabilities .columns-container { 
+        flex-direction: column;
+        gap: 0; /* Remove gap between stacked columns */
+    }
+    
+    /* Stack flop analysis sections */
+    .flop-analysis {
+        flex-direction: column;
+    }
+    
+    /* Adjust fixed position elements if they overlap badly */
+    /* Might need to adjust info icon/explanation positions */
+    .info-icon {
+        /* Optional: Adjust position slightly */
+        /* bottom: 10px; right: 10px; */
+    }
+    .explanation {
+         /* Optional: Adjust position or width */
+         /* width: calc(100% - 30px); */
+         /* bottom: 50px; */
+    }
+} 
