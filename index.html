@@ -13,42 +13,52 @@
             <div class="card-grid">
                 <!-- Card buttons will be generated here by JavaScript -->
             </div>
+            <div class="clear-all-container">
+                <button id="clear-all-btn" class="clear-all-btn">Clear All</button>
+            </div>
         </div>
         <div class="analytics-display">
-            <h2 id="selected-cards-header"><span id="selected-cards-display"></span></h2>
-
-            <div class="probabilities">
-                <!-- Probabilities will be displayed here -->
-                <div class="spinner-container" id="loading-spinner" style="display: none;">
-                    <div class="spinner"></div>
+            <div class="selected-cards-container">
+                <div class="hole-cards-centered">
+                    <div id="selected-cards-display" class="centered-hole-cards"></div>
+                </div>
+                <div class="community-cards-row">
+                    <div id="community-cards-display" class="community-cards-display"></div>
+                </div>
+                <div id="hand-name-display" class="hand-name-display">
+                    <span id="hand-name" class="hand-name">Select cards to see your hand</span>
+                </div>
+                <div id="current-hand-display" class="hand-name-display">
+                    <span id="current-hand" class="hand-name">Current hand: Select cards to see your current hand</span>
                 </div>
             </div>
-            <div class="flop-analysis">
-                <div class="best-flops">
-                    <h3>Best Flops</h3>
-                    <ul id="best-flops-list">
-                        <!-- Best flops listed here -->
-                    </ul>
+
+            <div class="probabilities-container">
+                <h3>Hand Probabilities</h3>
+                <div id="probability-explanation" style="display: none;">
+                    This shows the probability of getting each type of poker hand
+                    with the selected hole cards on the flop.
                 </div>
-                <div class="worst-flops">
-                    <h3>Worst Flops</h3>
-                    <ul id="worst-flops-list">
-                        <!-- Worst flops listed here -->
-                    </ul>
+                <div id="loading-spinner" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Calculating...</p>
+                </div>
+                <div class="probabilities"></div>
+            </div>
+
+            <div class="flop-lists">
+                <div class="flop-list">
+                    <h3 id="best-flops-title">Best Flops</h3>
+                    <ul id="best-flops-list"></ul>
+                </div>
+                <div class="flop-list">
+                    <h3 id="worst-flops-title">Worst Flops</h3>
+                    <ul id="worst-flops-list"></ul>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Moved Info Icon and Explanation outside main container for fixed positioning -->
-    <span class="info-icon" id="prob-info-icon" title="Click for explanation">(?)</span>
-    <div class="explanation" id="probability-explanation" style="display: none;">
-         <p>These percentages show the likelihood of making each hand type (<strong>best 5-card hand</strong>) using your <strong>two hole cards</strong> combined with the <strong>three flop cards</strong>. It iterates through all <strong>19,600 possible flops</strong>.</p>
-         <p>For example, if you hold a pair, the 'Pair' percentage indicates the chance that the flop does <strong>not improve</strong> your hand to Two Pair or better.</p>
-    </div>
-
-    <!-- Remove pokersolver CDN link - Worker fetches its own library -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/pokersolver@2.1.4/pokersolver.min.js"></script> -->
     <script src="script.js"></script>
 </body>
 </html> 

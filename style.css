@@ -27,7 +27,7 @@ body, html {
     /* Add flex properties for centering */
     display: flex;
     flex-direction: column; /* Stack potential children vertically */
-    justify-content: center; /* Center vertically */
+    justify-content: flex-start; /* Align to top instead of center */
 }
 
 .card-selector h2 {
@@ -103,10 +103,8 @@ h3 {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px; 
-    margin-top: 20px; /* Original top margin */
-    /* Add auto margins for vertical centering */
-    margin-top: auto;
-    margin-bottom: auto;
+    margin-top: 20px; /* Add top margin */
+    margin-bottom: 20px;
 }
 
 .card-button {
@@ -197,14 +195,17 @@ h3 {
 /* Styles for Flop Groups */
 .flop-group {
     margin-bottom: 5px; /* Space between groups */
+    position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .flop-group-summary {
     padding: 5px 0; 
-    /* border-bottom: 1px solid #404040; */ /* Remove border */
     display: flex;
     align-items: center;
     gap: 8px;
+    cursor: pointer;
 }
 
 .flop-group-rep {
@@ -224,61 +225,118 @@ h3 {
      margin-left: auto; /* Push count (and icon following it) to the right */
 }
 
-.expand-icon {
+.dropdown-icon {
     font-size: 0.8em;
     color: #aaa;
     transition: transform 0.2s ease-in-out;
-    /* margin-left: auto; */ /* Remove - count pushes it now */
+    margin-left: 8px;
 }
 
-.flop-variations li {
-    padding: 4px 0 4px 5px; 
+/* Styles for variations dropdown */
+.variations-dropdown {
+    background-color: #333;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #444;
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    box-sizing: border-box;
+    order: 2; /* Ensure it comes after the summary */
+}
+
+.variation-item {
+    padding: 6px 8px;
     font-size: 0.9em;
-    color: #bbb; 
-    /* border-bottom: 1px dashed #383838; */ /* Remove border */
+    color: #bbb;
+    border-bottom: 1px dashed #444;
+    margin-bottom: 4px;
 }
 
-.flop-variations li:last-child {
-     /* border-bottom: none; */ /* Rule no longer needed */
+.variation-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
 }
 
-/* Remove Flop Group Percentage Bars Styles */
-/*
-.flop-group-bar-container {
-    display: flex;
+/* Card suit colors */
+.suit-s, .suit-c {
+    color: black;
+    display: inline-flex;
     align-items: center;
-    height: 12px; 
-    margin: 2px 0 8px 0; 
-    background-color: #444;
-    border-radius: 3px;
-    overflow: hidden;
+    line-height: 1;
+    vertical-align: middle;
 }
 
-.flop-group-bar-value {
-    font-size: 0.75em;
-    color: #ddd; 
-    padding: 0 5px;
-    z-index: 1; 
-    mix-blend-mode: difference; 
-    line-height: 12px; 
+.suit-h, .suit-d {
+    color: red;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    vertical-align: middle;
 }
 
-.flop-group-bar {
-    height: 100%;
-    background-color: #0b5ed7; 
-    border-radius: 3px;
-    width: 0%; 
-    transition: width 0.5s ease-in-out; 
-    margin-left: -55px; 
-    padding-left: 55px; 
+/* Community card base styling */
+.community-card {
+    font-size: 36px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    top: 0;
+    margin: 0;
+    padding: 0;
+    vertical-align: baseline; /* Use baseline for consistent alignment */
 }
-*/
 
-/* Remove Suit colors - using emoji now */
-/* .suit-s { color: black; } */
-/* .suit-h { color: #d90000; } */
-/* .suit-d { color: #0052cc; } */
-/* .suit-c { color: #008000; } */
+/* Card text styling to ensure perfect alignment */
+.community-card .card-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    vertical-align: baseline; /* Use baseline for consistent alignment */
+    position: relative;
+    top: 0;
+}
+
+/* Card type specific colors only - no positioning differences */
+.flop-card {
+    color: #ff9900; /* Orange for flop */
+}
+
+.turn-card {
+    color: #44cc66; /* Green for turn */
+}
+
+.river-card {
+    color: #44aaff; /* Light blue for river */
+}
+
+/* Card rank styling with colors but identical positioning */
+.flop-card .card-rank,
+.turn-card .card-rank,
+.river-card .card-rank {
+    display: inline-flex;
+    vertical-align: baseline; /* Use baseline for consistent alignment */
+    line-height: 1;
+}
+
+.flop-card .card-rank {
+    color: #ff9900; /* Orange for flop numbers */
+}
+
+.turn-card .card-rank {
+    color: #44cc66; /* Green for turn numbers */
+}
+
+.river-card .card-rank {
+    color: #44aaff; /* Light blue for river numbers */
+}
 
 /* Add space between rank and suit */
 .card-button span,
@@ -463,4 +521,804 @@ h3 {
         font-size: 0.95em; /* Slightly smaller font */
         padding: 8px 4px; /* Reduce padding */
     }
+} 
+
+/* River Selection */
+.river-selection {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+
+#river-card-display {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 24px;
+}
+
+.river-grid {
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+#clear-river {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#clear-river:hover {
+    background-color: #777;
+}
+
+.selected-cards-container {
+    background-color: #222;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.selected-cards-container h3,
+.river-selection h3,
+.probabilities-container h3,
+.flop-list h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #ddd;
+}
+
+/* Update existing classes */
+.card-button.river-selected {
+    border: 2px solid #44aaff;
+    box-shadow: 0 0 5px #44aaff;
+}
+
+/* Turn Selection */
+.turn-selection {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+
+#turn-card-display {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 24px;
+}
+
+.turn-grid {
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+#clear-turn {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#clear-turn:hover {
+    background-color: #777;
+}
+
+.card-button.turn-selected {
+    border: 2px solid #44cc66;
+    box-shadow: 0 0 5px #44cc66;
+}
+
+/* Board Cards Selection */
+.board-selection {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+
+.board-display-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.card-label {
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+}
+
+#turn-card-display, #river-card-display {
+    min-width: 40px; /* Space for 1 card */
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+}
+
+.board-grid {
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.board-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.control-btn {
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    flex-grow: 1;
+}
+
+.control-btn:hover {
+    background-color: #777;
+}
+
+/* Card button states */
+.card-button.turn-selected {
+    border: 2px solid #44cc66;
+    box-shadow: 0 0 5px #44cc66;
+}
+
+.card-button.river-selected {
+    border: 2px solid #44aaff;
+    box-shadow: 0 0 5px #44aaff;
+}
+
+.card-button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Highlight next card to select */
+.board-selection.select-turn .card-label:first-child {
+    color: #44cc66;
+    font-weight: bold;
+}
+
+.board-selection.select-river .card-label:nth-child(2) {
+    color: #44aaff;
+    font-weight: bold;
+}
+
+/* Board Selection States */
+.board-selection.select-flop .card-label:nth-child(1) {
+    color: #ff9900;
+    font-weight: bold;
+}
+
+.board-selection.select-turn .card-label:nth-child(2) {
+    color: #44cc66;
+    font-weight: bold;
+}
+
+.board-selection.select-river .card-label:nth-child(3) {
+    color: #44aaff;
+    font-weight: bold;
+}
+
+/* Flop Cards Display */
+#flop-cards-display {
+    display: flex;
+    justify-content: space-around;
+    grid-column: 1 / span 3;
+}
+
+#flop-cards-display span {
+    flex: 0 1 auto;
+}
+
+/* Card states for flop/turn/river */
+.card-button.flop-selected {
+    border: 2px solid #ff9900;
+    box-shadow: 0 0 5px #ff9900;
+}
+
+.card-button.turn-selected {
+    border: 2px solid #44cc66;
+    box-shadow: 0 0 5px #44cc66;
+}
+
+.card-button.river-selected {
+    border: 2px solid #44aaff;
+    box-shadow: 0 0 5px #44aaff;
+}
+
+/* Adjustments for the board control buttons */
+.board-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.board-controls .control-btn {
+    flex: 1;
+    min-width: 70px;
+}
+
+/* Selection guidance styles */
+.selection-guidance {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+
+.guidance-text {
+    font-size: 16px;
+    margin: 0 0 10px 0;
+    color: #e0e0e0;
+}
+
+.selection-steps {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 15px;
+}
+
+.selection-steps span {
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.hole-step {
+    color: #0056b3;
+    border: 1px solid #0056b3;
+}
+
+.flop-step {
+    color: #ff9900;
+    border: 1px solid #ff9900;
+}
+
+.turn-step {
+    color: #44cc66;
+    border: 1px solid #44cc66;
+}
+
+.river-step {
+    color: #44aaff;
+    border: 1px solid #44aaff;
+}
+
+.active-step {
+    background-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+.control-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.control-btn {
+    flex: 1;
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    min-width: 70px;
+}
+
+.control-btn:hover {
+    background-color: #777;
+}
+
+/* Card selection styles */
+.card-button.hole-selected {
+    border: 2px solid #0056b3;
+    box-shadow: 0 0 5px #0056b3;
+}
+
+.card-button.flop-selected {
+    border: 2px solid #ff9900;
+    box-shadow: 0 0 5px #ff9900;
+}
+
+.card-button.turn-selected {
+    border: 2px solid #44cc66;
+    box-shadow: 0 0 5px #44cc66;
+}
+
+.card-button.river-selected {
+    border: 2px solid #44aaff;
+    box-shadow: 0 0 5px #44aaff;
+}
+
+/* Selected cards display */
+.all-cards-display {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+    background-color: #252525;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.card-section {
+    display: flex;
+    align-items: center;
+}
+
+.card-label {
+    width: 70px;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.hole-label {
+    color: #0056b3;
+}
+
+.flop-label {
+    color: #ff9900;
+}
+
+.turn-label {
+    color: #44cc66;
+}
+
+.river-label {
+    color: #44aaff;
+}
+
+.cards-row {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+#selected-cards-display span,
+#flop-cards-display span,
+#turn-card-display span,
+#river-card-display span {
+    padding: 5px;
+    border-radius: 5px;
+}
+
+/* Style for the placeholder '?' specifically */
+.placeholder-span {
+    color: #555;
+    font-size: 32px;
+    background-color: #333;
+    width: 40px;
+    height: 45px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    margin: 0 5px;
+}
+
+/* Disabled button styling */
+.card-button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.card-button.disabled:hover {
+    background-color: #333;
+    transform: none;
+}
+
+/* Styles for large hole cards display */
+.large-hole-cards, .large-card, .community-cards, .community-row, .community-card,
+.large-card.hole-selected, .community-card.flop-selected, .community-card.turn-selected,
+.community-card.river-selected, .large-card .suit-h, .large-card .suit-d, .large-card .suit-s,
+.large-card .suit-c, .community-card .suit-h, .community-card .suit-d, .community-card .suit-s,
+.community-card .suit-c {
+    /* These classes are being removed */
+}
+
+.clear-all-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.clear-all-btn {
+    background-color: #444;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.clear-all-btn:hover {
+    background-color: #666;
+}
+
+.hand-name-display {
+    margin-top: 15px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    /* Remove background color, borders, and border-radius */
+    background-color: transparent;
+    border-left: none;
+    margin-left: 0;
+    margin-right: auto;
+    width: fit-content;
+    text-align: left;
+}
+
+.hand-name-label {
+    font-weight: bold;
+    color: #aaa;
+    margin-right: 10px;
+    font-size: 16px;
+}
+
+.hand-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* Color classes for different hand types */
+.hand-name.straight-flush {
+    color: #ff5555;
+    text-shadow: 0 0 5px rgba(255, 85, 85, 0.5);
+}
+
+.hand-name.four-of-a-kind {
+    color: #ff9955;
+}
+
+.hand-name.full-house {
+    color: #ffdd55;
+}
+
+.hand-name.flush {
+    color: #55ff55;
+}
+
+.hand-name.straight {
+    color: #55ffff;
+}
+
+.hand-name.three-of-a-kind {
+    color: #5599ff;
+}
+
+.hand-name.two-pair {
+    color: #9955ff;
+}
+
+.hand-name.pair {
+    color: #ff55ff;
+}
+
+.hand-name.high-card {
+    color: #aaaaaa;
+}
+
+/* Probability display */
+.probability-header {
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.probability-header h4 {
+    margin: 0 0 5px 0;
+    font-size: 18px;
+    color: #fff;
+}
+
+.prob-explanation {
+    font-size: 14px;
+    color: #aaa;
+    margin: 0 0 15px 0;
+}
+
+#prob-info-icon {
+    color: #0056b3;
+    cursor: pointer;
+    margin-left: 5px;
+}
+
+.probability-tooltip {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background-color: #2a2a2a;
+    padding: 12px;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    width: 300px;
+    font-size: 14px;
+    color: #ddd;
+    line-height: 1.4;
+}
+
+.probability-tooltip ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+}
+
+.probability-tooltip li {
+    margin-bottom: 5px;
+}
+
+.probability-item {
+    margin-bottom: 12px;
+    position: relative;
+}
+
+.probability-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.hand-type-name {
+    font-weight: 500;
+    color: #fff;
+}
+
+.percentage {
+    color: #ddd;
+    font-weight: 400;
+}
+
+.probability-bar-container {
+    height: 12px;
+    background-color: #444;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.probability-bar {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.5s ease-out;
+}
+
+/* Hand type specific colors */
+.probability-bar.straight-flush {
+    background-color: #ff5555;
+}
+
+.probability-bar.four-of-a-kind {
+    background-color: #ff9955;
+}
+
+.probability-bar.full-house {
+    background-color: #ffdd55;
+}
+
+.probability-bar.flush {
+    background-color: #55ff55;
+}
+
+.probability-bar.straight {
+    background-color: #55ffff;
+}
+
+.probability-bar.three-of-a-kind {
+    background-color: #5599ff;
+}
+
+.probability-bar.two-pair {
+    background-color: #9955ff;
+}
+
+.probability-bar.pair {
+    background-color: #ff55ff;
+}
+
+.probability-bar.high-card {
+    background-color: #aaaaaa;
+}
+
+.probability-item-tooltip {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: #2a2a2a;
+    padding: 8px 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    width: 250px;
+    font-size: 13px;
+    color: #ddd;
+    margin-top: 5px;
+}
+
+.hole-cards-centered {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 40px 0;
+    margin-bottom: 20px;
+    width: 100%;
+    position: relative;
+    padding-left: 0;
+}
+
+.community-cards-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    margin-bottom: 30px;
+    height: 60px;
+    width: 100%;
+    max-width: 240px;
+    margin-left: 0;
+    margin-right: auto;
+    position: relative;
+}
+
+/* Position the containers in specific grid locations */
+.community-cards-display {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    width: 100%;
+    height: 100%;
+    grid-column: 1 / span 5;
+}
+
+/* Make sure each card takes the same visual space */
+.community-card {
+    font-size: 36px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    top: 0;
+    margin: 0;
+    padding: 0;
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* Position each flop card in specific slots */
+.community-card:nth-child(1) {
+    grid-column: 1;
+}
+
+.community-card:nth-child(2) {
+    grid-column: 2;
+}
+
+.community-card:nth-child(3) {
+    grid-column: 3;
+}
+
+/* Position turn card */
+.community-card:nth-child(4) {
+    grid-column: 4;
+}
+
+/* Position river card */
+.community-card:nth-child(5) {
+    grid-column: 5;
+}
+
+/* Card type specific colors only - no positioning differences */
+.flop-card {
+    color: #ff9900; /* Orange for flop */
+}
+
+.turn-card {
+    color: #44cc66; /* Green for turn */
+}
+
+.river-card {
+    color: #44aaff; /* Light blue for river */
+}
+
+/* Card rank styling with colors but identical positioning */
+.flop-card .card-rank,
+.turn-card .card-rank,
+.river-card .card-rank {
+    display: inline-flex;
+    vertical-align: baseline; /* Use baseline for consistent alignment */
+    line-height: 1;
+}
+
+.flop-card .card-rank {
+    color: #ff9900; /* Orange for flop numbers */
+}
+
+.turn-card .card-rank {
+    color: #44cc66; /* Green for turn numbers */
+}
+
+.river-card .card-rank {
+    color: #44aaff; /* Light blue for river numbers */
+}
+
+.centered-hole-cards {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    margin-left: 0;
+}
+
+.centered-hole-cards span {
+    font-size: 100px !important;
+}
+
+/* Community card base styling */
+.community-card {
+    font-size: 36px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Card type specific colors */
+.flop-card {
+    color: #ff9900; /* Orange for flop */
+}
+
+.flop-card .card-rank {
+    color: #ff9900; /* Orange for flop numbers */
+}
+
+.turn-card {
+    color: #44cc66; /* Green for turn */
+}
+
+.turn-card .card-rank {
+    color: #44cc66; /* Green for turn numbers */
+}
+
+.river-card {
+    color: #44aaff; /* Light blue for river */
+}
+
+.river-card .card-rank {
+    color: #44aaff; /* Light blue for river numbers */
+}
+
+.community-card .card-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    vertical-align: baseline;
+    position: relative;
+    top: 0;
 } 
