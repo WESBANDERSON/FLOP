@@ -102,8 +102,11 @@ h3 {
 .card-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px; /* Slightly reduced gap */
-    margin-top: 20px;
+    gap: 8px; 
+    margin-top: 20px; /* Original top margin */
+    /* Add auto margins for vertical centering */
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 .card-button {
@@ -449,5 +452,15 @@ h3 {
          /* Optional: Adjust position or width */
          /* width: calc(100% - 30px); */
          /* bottom: 50px; */
+    }
+
+    /* Reduce card grid size on mobile */
+    .card-grid {
+        gap: 5px; /* Reduce gap */
+    }
+
+    .card-button {
+        font-size: 0.95em; /* Slightly smaller font */
+        padding: 8px 4px; /* Reduce padding */
     }
 } 
