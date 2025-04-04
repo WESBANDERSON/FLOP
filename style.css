@@ -142,14 +142,27 @@ h3 {
 }
 
 .probabilities {
-    /* Adjust top padding/margin if needed now that h2 is gone */
-    /* margin-top: 20px; */ /* Example */
-    padding-top: 10px; /* Add some padding at the top */
-    /* flex-grow: 1; */ 
-    margin-bottom: 20px; 
-    /* Add overflow handling if content exceeds space */
+    /* Keep only styles relevant to the inner content area */
     overflow-y: auto; 
-    position: relative; /* Needed for absolute positioning of spinner */
+    position: relative;
+}
+
+.probabilities-container {
+    /* Add the background/container styles */
+    background-color: #2c2c2c;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    border: 1px solid #444;
+    margin-bottom: 20px; 
+}
+
+.probabilities-container h3 {
+    /* Ensure consistent h3 styling within the container */
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #ddd;
+    margin-top: 0; /* Make sure no extra top margin */
 }
 
 .flop-analysis {
@@ -160,10 +173,14 @@ h3 {
     flex-shrink: 0; /* Prevent shrinking too much */
 }
 
-.best-flops,
-.worst-flops {
-    flex: 1;
-    /* Dark mode flop boxes */
+.flop-lists {
+    display: flex;
+    gap: 20px; /* Adjust gap as needed */
+    margin-bottom: 20px; /* Add some margin below */
+}
+
+.flop-list {
+    flex: 1; /* Make each list take up equal space */
     background-color: #2c2c2c;
     padding: 20px;
     border-radius: 6px;
@@ -561,15 +578,20 @@ h3 {
 }
 
 .selected-cards-container {
-    background-color: #222;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 15px;
+    background-color: #2c2c2c;
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    border: 1px solid #444;
+    /* Re-apply Flexbox */
+    display: flex; 
+    align-items: flex-start; 
+    gap: 85px; /* Increase gap further */
 }
 
 .selected-cards-container h3,
 .river-selection h3,
-.probabilities-container h3,
 .flop-list h3 {
     font-size: 18px;
     margin-bottom: 10px;
@@ -1165,14 +1187,42 @@ h3 {
 }
 
 .hole-cards-centered {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 40px 0;
-    margin-bottom: 20px;
-    width: 100%;
-    position: relative;
+    margin-bottom: 0; 
+    position: relative; 
     padding-left: 0;
+    width: 350px;      /* Add explicit width */
+}
+
+/* Add rules for the direct display container */
+#selected-cards-display {
+    position: relative; /* Make it a positioning context */
+    min-height: 50px;    /* Keep min-height */
+    font-size: 0;        /* Add this to collapse line-box */
+}
+
+/* Remove rules for .large-hole-card-pair-container */
+/* .large-hole-card-pair-container { ... } */
+
+
+/* Update selectors back to direct children */
+#selected-cards-display span {
+    font-size: 100px !important;
+    line-height: 1; 
+    position: absolute; 
+    top: 0;             
+    left: 0;            
+    padding: 0; /* Add padding: 0 */
+    margin: 0;  /* Add margin: 0 */
+}
+
+/* Add rule to adjust suit position within the card - CORRECTED SELECTOR */
+#selected-cards-display span span[class^="suit-"] {
+    margin-left: -125px; /* Final adjustment to negative margin */
+    display: inline-block; 
+}
+
+#selected-cards-display span:nth-child(2) {
+    left: 200px; 
 }
 
 .community-cards-row {
@@ -1185,6 +1235,7 @@ h3 {
     margin-left: 0;
     margin-right: auto;
     position: relative;
+    margin-top: 15px; /* Add some space above community cards */
 }
 
 /* Position the containers in specific grid locations */
@@ -1275,8 +1326,18 @@ h3 {
     margin-left: 0;
 }
 
-.centered-hole-cards span {
+.centered-hole-cards .large-hole-card-pair-container span {
     font-size: 100px !important;
+    line-height: 1; 
+    /* vertical-align: top; */ /* Removed in previous step */
+    position: absolute; /* Position absolutely */
+    top: 0;             /* Align to top */
+    left: 0;            /* Default left for first card */
+}
+
+/* Add rule for the second card */
+.centered-hole-cards .large-hole-card-pair-container span:nth-child(2) {
+    left: 200px; /* Increase offset further */
 }
 
 /* Community card base styling */
@@ -1321,4 +1382,18 @@ h3 {
     vertical-align: baseline;
     position: relative;
     top: 0;
+}
+
+/* Styles for the new right column wrapper */
+.hand-community-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; 
+    flex-grow: 1; /* Keep flex-grow */
+}
+
+/* Remove margin-top from community row if column gap handles spacing */
+.community-cards-row {
+    /* margin-top: 15px; */ 
+    /* ... keep existing styles ... */
 } 

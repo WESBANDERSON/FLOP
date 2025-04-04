@@ -27,6 +27,29 @@ const HAND_TYPES = Object.keys(HAND_RANKS).sort((a, b) => HAND_RANKS[b] - HAND_R
 // Constants for hand evaluation
 const RANKS_NUM = { 'A': 14, 'K': 13, 'Q': 12, 'J': 11, 'T': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2 };
 
+// --- NEW: Global variable to store pre-computed probabilities ---
+let holeCardProbabilities = null;
+
+// --- NEW: Function to load probabilities ---
+async function loadHoleCardProbabilities() {
+    if (holeCardProbabilities) {
+        return holeCardProbabilities;
+    }
+    try {
+        const response = await fetch('hole_card_probs.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        holeCardProbabilities = await response.json();
+        console.log("Successfully loaded hole_card_probs.json");
+        return holeCardProbabilities;
+    } catch (error) {
+        console.error("Error loading hole_card_probs.json:", error);
+        // Return a default structure or throw error to indicate failure
+        return null; 
+    }
+}
+
 // --- Deck Generation / Combination Helpers (Remain the same) ---
 function generateFullDeck() {
     const fullDeck = [];
@@ -191,207 +214,267 @@ function findBestHand(cards) {
     };
 }
 
-// Calculate the best next cards (turn or river) based on current selection
-function calculateBestNextCards(holeCards, flopCards, turnCard) {
-    console.time('worker:calculateBestNextCards');
-    
-    // Determine if we're calculating best turn or river cards
-    const isTurn = !turnCard;
+// --- Simulation Functions ---
+
+// Calculates EXACT probabilities BY THE RIVER given hole cards and a partial board
+function simulateRemainingStreets(holeCards, boardCards) {
+    console.log("Calculating exact river probabilities from partial board...");
+    console.time('worker:simulateRemainingStreets');
+
+    const knownCards = [...holeCards, ...boardCards];
+    const deck = getDeck(knownCards);
+    const cardsNeeded = 5 - boardCards.length; // 2 if flop, 1 if turn
+
+    if (deck.length < cardsNeeded) {
+        console.error("Not enough cards left in deck to simulate remaining streets.");
+        return HAND_TYPES.reduce((acc, type) => { acc[type] = 0; return acc; }, {});
+    }
+
+    const handTypeCounts = {};
+    HAND_TYPES.forEach(type => { handTypeCounts[type] = 0; });
+
+    const remainingCombinations = getCombinations(deck, cardsNeeded);
+    const totalCombinations = remainingCombinations.length;
+
+    if (totalCombinations === 0) {
+         console.error("No remaining card combinations found.");
+         return HAND_TYPES.reduce((acc, type) => { acc[type] = 0; return acc; }, {});
+    }
+
+    remainingCombinations.forEach(combo => {
+        const finalBoard = [...boardCards, ...combo];
+        const allCards = [...holeCards, ...finalBoard];
+        const { type } = findBestHand(allCards); // Evaluate final 7-card hand
+        if (type) {
+            handTypeCounts[type]++;
+        }
+    });
+
+    // Convert counts to percentages
+    const probabilities = {};
+    HAND_TYPES.forEach(type => {
+        probabilities[type] = (handTypeCounts[type] / totalCombinations) * 100;
+    });
+
+    console.timeEnd('worker:simulateRemainingStreets');
+    console.log("Exact calculation complete.", probabilities);
+    return probabilities;
+}
+
+// --- Function to calculate best NEXT card (for Best Turn/River lists) ---
+// Renamed for clarity, logic remains similar
+function calculateBestNextSingleCard(holeCards, currentBoard) {
+    console.time('worker:calculateBestNextSingleCard');
+    const isTurn = currentBoard.length === 3;
     const title = isTurn ? "Turn" : "River";
-    console.log(`Calculating best ${title} cards`);
-    
-    // Get all cards that are already in play
-    const usedCards = [...holeCards, ...flopCards];
-    if (turnCard) usedCards.push(turnCard);
-    
-    // Get remaining available cards in the deck
+    console.log(`Calculating best single ${title} card`);
+
+    const usedCards = [...holeCards, ...currentBoard];
     const remainingCards = getDeck(usedCards);
-    console.log(`${remainingCards.length} cards available for ${title}`);
-    
-    // Evaluate each possible next card
+
+    if (remainingCards.length === 0) return []; // No cards left
+
     const nextCardResults = [];
-    
     remainingCards.forEach(nextCard => {
-        let cardsToEvaluate = [...holeCards, ...flopCards];
-        if (turnCard) cardsToEvaluate.push(turnCard);
-        cardsToEvaluate.push(nextCard);
-        
-        // We have more than 5 cards, so find the best 5-card hand
-        const result = findBestHand(cardsToEvaluate);
-        
+        const cardsToEvaluate = [...usedCards, nextCard]; // Evaluate hand with the next card added
+        const result = findBestHand(cardsToEvaluate); // Best hand with 6 or 7 cards
         nextCardResults.push({
             card: nextCard,
             type: result.type,
             rank: result.rank
         });
     });
-    
-    // Group cards by hand type
+
+    // Group cards by hand type achieved
     const handGroups = {};
-    
     nextCardResults.forEach(result => {
         if (!handGroups[result.type]) {
-            handGroups[result.type] = {
-                type: result.type,
-                rank: result.rank,
-                cards: []
-            };
+            handGroups[result.type] = { type: result.type, rank: result.rank, cards: [] };
         }
-        
         handGroups[result.type].cards.push(result.card);
     });
-    
-    // Convert to array and sort by hand rank (best first)
-    const groupsArray = Object.values(handGroups)
-        .sort((a, b) => b.rank - a.rank);
-    
-    // Format for UI: convert to the same format as flop groups
+
+    // Sort groups by rank
+    const groupsArray = Object.values(handGroups).sort((a, b) => b.rank - a.rank);
+
+    // Format for UI
     const bestGroups = groupsArray.map(group => ({
         type: group.type,
         rank: group.rank,
-        flops: group.cards.map(card => [card]), // Wrap each card in an array to match flop format
-        representativeFlop: [group.cards[0]], // Use the first card as representative, not flop cards
-        handName: group.type // Make sure handName is set for UI display
+        flops: group.cards.map(card => [card]), // Wrap card in array
+        representativeFlop: [group.cards[0]], // Show the best card as representative
+        handName: group.type
     }));
-    
-    // Calculate hand type probabilities
-    const totalCards = remainingCards.length;
-    const probabilities = {};
-    
-    Object.keys(HAND_RANKS).forEach(handType => {
-        const cardsForHandType = handGroups[handType]?.cards?.length || 0;
-        probabilities[handType] = (cardsForHandType / totalCards) * 100;
-    });
-    
-    console.timeEnd('worker:calculateBestNextCards');
-    
-    // Return results in the same format as calculateAnalytics
-    return {
-        probabilities,
-        bestFlopGroups: bestGroups,
-        worstFlopGroups: [], // We don't need worst cards anymore
-        hasTurn: !!turnCard
-    };
+
+    console.timeEnd('worker:calculateBestNextSingleCard');
+    return bestGroups;
 }
 
-// --- Analytics Calculation --- (Uses local evaluate5CardHand)
+// --- Main Analytics Calculation Logic ---
 
-// Helper to get a grouping key (hand name + sorted ranks)
-function getFlopGroupKey(flop, handName) {
-    const ranks = flop.map(card => card.slice(0, -1))
-                      .sort((a, b) => RANKS_STR.indexOf(b) - RANKS_STR.indexOf(a)); // Sort ranks high to low
-    return `${handName}-${ranks.join('')}`;
+// --- UPDATED: Use lookup table for hole card probabilities ---
+function getHoleCardKey(holeCards) {
+    if (!holeCards || holeCards.length !== 2) return null;
+
+    const card1Rank = holeCards[0].slice(0, -1);
+    const card2Rank = holeCards[0].slice(0, -1);
+    const card1Suit = holeCards[0].slice(-1);
+    const card2Suit = holeCards[1].slice(-1);
+    
+    const rank1Value = RANKS_NUM[card1Rank];
+    const rank2Value = RANKS_NUM[card2Rank];
+    
+    let key;
+    if (rank1Value === rank2Value) { // Pocket pair
+        key = card1Rank + card2Rank; 
+    } else {
+        const suited = card1Suit === card2Suit ? 's' : 'o';
+        // Ensure consistent order (higher rank first)
+        if (rank1Value > rank2Value) {
+            key = card1Rank + card2Rank + suited;
+        } else {
+            key = card2Rank + card1Rank + suited;
+        }
+    }
+    return key;
 }
 
-function calculateAnalytics(holeCards, flopCards, turnCard, riverCard) {
-    // If we have a complete flop, use the fixed board evaluation
-    if (flopCards && flopCards.length === 3) {
-        return calculateAnalyticsWithFixedBoard(holeCards, flopCards, turnCard, riverCard);
+// Calculates analytics when only hole cards are known
+async function calculateAnalyticsFromHoleCards(holeCards) {
+    console.time('worker:calculateAnalyticsFromHoleCards');
+
+    // 1. Load or get pre-computed probabilities
+    const probsData = await loadHoleCardProbabilities();
+    let probabilities = HAND_TYPES.reduce((acc, type) => { acc[type] = 0; return acc; }, {}); // Default
+
+    if (probsData) {
+        const key = getHoleCardKey(holeCards);
+        if (key && probsData[key]) {
+            probabilities = probsData[key];
+            console.log(`Using pre-computed probabilities for ${key}`);
+        } else {
+            console.warn(`Could not find pre-computed probabilities for key: ${key}. Using defaults.`);
+            // Optionally, you could fall back to calculation here, but we'll use defaults for now.
+        }
+    } else {
+        console.error("Failed to load probability data. Using defaults.");
     }
     
-    console.time('worker:calculateAnalytics');
-    // We have hole cards, calculate probabilities of hitting each hand type by the river
-    
-    // Cards must be in format like 'Ah', 'Kd', etc.
-    const deck = getDeck();
-    const availableCards = deck.filter(card => !holeCards.includes(card));
-    
-    // Initialize counts for each hand type
-    const handTypeCounts = {};
-    HAND_TYPES.forEach(type => { handTypeCounts[type] = 0; });
-    
-    // Get all possible flop, turn, and river combinations
-    // This would be too many to calculate (C(50,5) is over 2 million), so let's use sampling
-    
-    // Instead, we'll generate a sample of possible board combinations
-    const SAMPLE_SIZE = 3000; // Adjust this for performance vs. accuracy
-    const boardSamples = [];
-    
-    for (let i = 0; i < SAMPLE_SIZE; i++) {
-        // Shuffle the available cards and take the first 5 for a board
-        const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
-        boardSamples.push(shuffled.slice(0, 5));
-    }
-    
-    // Evaluate each sample board
-    boardSamples.forEach(board => {
-        const allCards = [...holeCards, ...board];
-        const { type } = findBestHand(allCards);
-        handTypeCounts[type]++;
-    });
-    
-    // Convert counts to percentages
-    const probabilities = {};
-    HAND_TYPES.forEach(type => {
-        probabilities[type] = (handTypeCounts[type] / SAMPLE_SIZE) * 100;
-    });
-    
-    // For the best/worst flops, we'll still use the original logic
-    // but limit to fewer flops for performance
-    const MAX_FLOPS_TO_EVALUATE = 1000;
-    
-    // Best flop groups by hand type
+    // 2. Calculate Best/Worst FLOPs based on immediate 5-card hand strength
+    const deck = getDeck(holeCards); // Use deck excluding hole cards
+    const availableCards = deck;
     const bestFlopsByType = {};
-    // Worst flops by hand type
     const worstFlopsByType = {};
-    
-    // Get a sample of possible flops
+    const MAX_FLOPS_TO_EVALUATE = 1000; // Keep flop evaluation manageable
     const flops = getCombinations(availableCards, 3).slice(0, MAX_FLOPS_TO_EVALUATE);
-    
-    // Evaluate each flop
+
     flops.forEach(flop => {
         const fiveCards = [...holeCards, ...flop];
-        const { type, rank } = evaluate5CardHand(fiveCards);
-        
-        // Store in best/worst flops by type
+        const { type, rank } = evaluate5CardHand(fiveCards); // Use 5-card eval for flops
         updateBestWorstFlops(bestFlopsByType, worstFlopsByType, type, flop, rank);
     });
-    
-    // Sort and format the best/worst flop groups for display
+
     const bestFlopGroups = formatFlopGroups(bestFlopsByType, true);
     const worstFlopGroups = formatFlopGroups(worstFlopsByType, false);
-    
-    console.timeEnd('worker:calculateAnalytics');
-    
+
+    // Evaluate current hand (just hole cards)
+    let currentHandResult = { handName: 'High Card', rank: 1, bestHand: holeCards };
+    if (holeCards.length === 2) {
+         const ranks = holeCards.map(c => c.slice(0,-1));
+         if (ranks[0] === ranks[1]) {
+             currentHandResult = { handName: 'Pair', rank: HAND_RANKS['Pair'], bestHand: holeCards };
+         }
+    }
+
+    console.timeEnd('worker:calculateAnalyticsFromHoleCards');
     return {
         probabilities,
-        bestFlopGroups,
+        bestFlopGroups, // Represents best/worst actual flops
         worstFlopGroups,
-        hasTurn: false
+        currentHandName: currentHandResult.handName,
+        currentBestHandCards: currentHandResult.bestHand,
+        hasTurn: false,
+        hasRiver: false
     };
 }
 
-// Main entry point - receives message from main thread
-self.onmessage = function(e) {
+// Calculates analytics when flop or turn is known
+function calculateAnalyticsWithFixedBoard(holeCards, flopCards, turnCard, riverCard) {
+    console.time('worker:calculateFixedBoard');
+    
+    let currentBoard = flopCards ? [...flopCards] : [];
+    if (turnCard) currentBoard.push(turnCard);
+    if (riverCard) currentBoard.push(riverCard);
+
+    // 1. Evaluate the CURRENT best hand
+    let currentCards = [...holeCards, ...currentBoard];
+    let currentHandResult = { handName: 'High Card', rank: 1, bestHand: holeCards }; // Default for <5 cards
+    if (currentCards.length >= 5) {
+        currentHandResult = findBestHand(currentCards);
+    }
+    
+    // 2. Calculate EXACT probabilities BY THE RIVER
+    let probabilities = {};
+    let bestNextCardGroups = [];
+    let worstNextCardGroups = []; // Worst list is not typically shown after flop
+
+    if (riverCard) {
+        // River is dealt - probabilities are 100% for the final hand
+        for (const type of HAND_TYPES) {
+            probabilities[type] = (type === currentHandResult.handName) ? 100 : 0;
+        }
+        // No "best next card" groups needed
+    } else {
+        // Flop or Turn is dealt - simulate remaining cards for probabilities
+        probabilities = simulateRemainingStreets(holeCards, currentBoard);
+        // Calculate best SINGLE card for the next street display
+        bestNextCardGroups = calculateBestNextSingleCard(holeCards, currentBoard);
+    }
+        
+    console.timeEnd('worker:calculateFixedBoard');
+    return {
+        probabilities, // Now represents accurate river probabilities
+        bestFlopGroups: bestNextCardGroups, // Represents best *next single card*
+        worstFlopGroups: worstNextCardGroups, // Empty after flop
+        currentHandName: currentHandResult.handName, 
+        currentBestHandCards: currentHandResult.bestHand, 
+        hasTurn: !!turnCard, 
+        hasRiver: !!riverCard 
+    };
+}
+
+// --- Worker Message Handling ---
+self.onmessage = async function(e) { // Make this async to handle await
     try {
-        // Extract message data
         const { holeCards, flopCards, turnCard, riverCard } = e.data;
         
-        // Validate input
-        if (!holeCards || holeCards.length !== 2) {
-            throw new Error("Two hole cards are required");
+        if (!holeCards || holeCards.length < 2) {
+            // Handle case where calculation is requested before 2 hole cards are selected
+            // This might happen if the main thread logic changes
+            console.log("Worker called with fewer than 2 hole cards.");
+            // Send back default/empty data
+            const defaultProbs = HAND_TYPES.reduce((acc, type) => { acc[type] = 0; return acc; }, {});
+             self.postMessage({ 
+                probabilities: defaultProbs, 
+                bestFlopGroups: [], 
+                worstFlopGroups: [],
+                currentHandName: 'High Card',
+                currentBestHandCards: holeCards,
+                hasTurn: false,
+                hasRiver: false
+            });
+            return;
         }
         
         let result;
-        
-        // If we have a complete flop, use the specific board evaluation
         if (flopCards && flopCards.length === 3) {
-            if (turnCard && riverCard) {
-                // Complete 7-card hand (2 hole + 3 flop + turn + river)
-                result = calculateAnalyticsWithFixedBoard(holeCards, flopCards, turnCard, riverCard);
-            } else if (turnCard) {
-                // 6-card hand (2 hole + 3 flop + turn)
-                result = calculateAnalyticsWithFixedBoard(holeCards, flopCards, turnCard, null);
-            } else {
-                // 5-card hand (2 hole + 3 flop)
-                result = calculateAnalyticsWithFixedBoard(holeCards, flopCards, null, null);
-            }
+            // Flop, Turn, or River is known
+            result = calculateAnalyticsWithFixedBoard(holeCards, flopCards, turnCard, riverCard);
         } else {
-            // No specific flop selected, run full flop simulation
-            result = calculateAnalytics(holeCards);
+            // Only Hole Cards are known - NOW USES LOOKUP
+            result = await calculateAnalyticsFromHoleCards(holeCards); // await the async function
         }
         
-        // Return the result to the main thread
         self.postMessage(result);
     } catch (error) {
         console.error("Worker error:", error);
@@ -399,122 +482,7 @@ self.onmessage = function(e) {
     }
 };
 
-// Function to calculate analytics with a fixed board
-function calculateAnalyticsWithFixedBoard(holeCards, flopCards, turnCard, riverCard) {
-    console.time('worker:calculateFixedBoard');
-    
-    // If we have river card, we have a complete hand - no further probability
-    if (riverCard) {
-        // Combine all cards present
-        const allCards = [...holeCards, ...flopCards, turnCard, riverCard];
-        
-        // Find the best 5-card hand from these cards
-        const { type: handType, rank: handRank, bestHand } = findBestHand(allCards);
-        
-        // Set 100% probability for the actual hand type
-        const probabilities = {};
-        for (const type of HAND_TYPES) {
-            probabilities[type] = (type === handType) ? 100 : 0;
-        }
-        
-        // Create a 'group' for the current hand
-        const currentHand = {
-            handType,
-            handName: handType,
-            representativeFlop: flopCards,
-            flops: [{ cards: flopCards, handRank }]
-        };
-        
-        console.timeEnd('worker:calculateFixedBoard');
-        
-        // Return all analytics data including the best hand cards
-        return {
-            probabilities,
-            bestFlopGroups: [currentHand],
-            worstFlopGroups: [],
-            bestHand,
-            hasTurn: true
-        };
-    }
-    
-    // If we have turn card but no river, calculate best possible river cards
-    if (turnCard) {
-        // Use the dedicated function to find best next cards (river cards)
-        const result = calculateBestNextCards(holeCards, flopCards, turnCard);
-        
-        // Get the current hand evaluation for display
-        const currentCards = [...holeCards, ...flopCards, turnCard];
-        const { type: currentHandType, rank: currentHandRank, bestHand } = findBestHand(currentCards);
-        
-        console.timeEnd('worker:calculateFixedBoard');
-        
-        // Add the best hand to the result
-        result.bestHand = bestHand;
-        
-        return result;
-    }
-    
-    // If we just have flop cards, calculate best possible turn cards
-    if (flopCards) {
-        // Use the dedicated function to find best next cards (turn cards)
-        const result = calculateBestNextCards(holeCards, flopCards, null);
-        
-        // Get the current hand evaluation for display
-        const currentCards = [...holeCards, ...flopCards];
-        const { type: currentHandType, rank: currentHandRank, bestHand } = findBestHand(currentCards);
-        
-        console.timeEnd('worker:calculateFixedBoard');
-        
-        // Add the best hand to the result
-        result.bestHand = bestHand;
-        
-        return result;
-    }
-    
-    // Should not reach here
-    return calculateAnalytics(holeCards);
-}
-
-// Evaluate a specific flop (used for fixed flop scenarios)
-function evaluateFixedFlop(holeCards, flopCards, turnCard, riverCard) {
-    // Build the 5-card hand
-    let currentHandCards = [...holeCards];
-    
-    // Add flop cards if provided
-    if (flopCards) {
-        currentHandCards = currentHandCards.concat(flopCards);
-    }
-    
-    // Add turn if provided
-    if (turnCard) currentHandCards.push(turnCard);
-    
-    // Add river if provided
-    if (riverCard) currentHandCards.push(riverCard);
-    
-    // Ensure we have the best 5 cards if we have more than 5
-    let result;
-    if (currentHandCards.length > 5) {
-        // Find the best 5-card hand from all available cards
-        result = findBestHand(currentHandCards);
-    } else {
-        // Just evaluate the 5 cards directly
-        result = evaluate5CardHand(currentHandCards);
-    }
-    
-    return {
-        flop: flopCards || [],
-        handName: result.handName,
-        handRank: result.rank,
-        fullHand: currentHandCards
-    };
-}
-
-// Handle worker errors
-self.onerror = function(error) {
-    console.error("Worker script error:", error);
-};
-
-// Helper function to update the best and worst flops for each hand type
+// --- Helper functions for formatting/updating flop groups (remain the same) ---
 function updateBestWorstFlops(bestFlopsByType, worstFlopsByType, handType, flop, handRank) {
     // Initialize if this hand type hasn't been seen before
     if (!bestFlopsByType[handType]) {
@@ -538,7 +506,6 @@ function updateBestWorstFlops(bestFlopsByType, worstFlopsByType, handType, flop,
     }
 }
 
-// Helper function to format flop groups for display
 function formatFlopGroups(flopsByType, isBest) {
     // Convert to array and sort
     const groups = Object.values(flopsByType);
@@ -559,3 +526,8 @@ function formatFlopGroups(flopsByType, isBest) {
         handRank: group.handRank
     }));
 }
+
+// Handle worker errors
+self.onerror = function(error) {
+    console.error("Worker script error:", error);
+};

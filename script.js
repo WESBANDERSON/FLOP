@@ -48,6 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_HOLE_CARDS = 2;
     const MAX_FLOP_CARDS = 3;
 
+    // Default state data
+    const defaultProbabilities = DISPLAY_HAND_TYPES.reduce((acc, type) => {
+        acc[type] = 0;
+        return acc;
+    }, {});
+
     // --- Helper Functions (Only UI related ones remain) ---
     function generateFullDeck() { // Keep for button generation
         const fullDeck = [];
@@ -208,13 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateHoleCardsDisplay();
         updateCommunityCardsDisplay();
         
-        // Update analysis if we have enough cards
-        if (selectedHoleCards.length === MAX_HOLE_CARDS) {
-            updateAnalytics();
-        } else {
-            // Clear analytics if we don't have enough hole cards
-            clearAnalytics();
-        }
+        // ALWAYS update analytics, which will handle placeholder state internally
+        updateAnalytics();
         
         // Update all button states to reflect available options
         updateCardButtonStates();
@@ -253,18 +254,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateHoleCardsDisplay() {
         // Update the text display for hole cards
-        while (selectedCardsDisplay.firstChild) {
-            selectedCardsDisplay.removeChild(selectedCardsDisplay.firstChild);
+        // Select the main display container
+        const displayContainer = document.getElementById('selected-cards-display');
+        if (!displayContainer) return;
+
+        // Clear the main container
+        while (displayContainer.firstChild) {
+            displayContainer.removeChild(displayContainer.firstChild);
         }
         
-        // Add selected hole cards
+        // Add selected hole cards directly to the main container
         selectedHoleCards.forEach(card => {
             const span = document.createElement('span');
             span.innerHTML = formatCard(card, true);
-            selectedCardsDisplay.appendChild(span);
+            displayContainer.appendChild(span);
         });
-        
-        // No placeholders for empty slots - leave blank
     }
 
     function updateCommunityCardsDisplay() {
@@ -297,30 +301,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateAnalytics() {
-        // If we don't have 2 hole cards, don't calculate
+        // If we don't have 2 hole cards, display placeholder state and return
         if (selectedHoleCards.length !== MAX_HOLE_CARDS) {
-            clearAnalytics();
+            displayPlaceholderAnalytics();
             return;
         }
         
-        // Show loading spinner
+        // Proceed with calculating analytics if we have 2 hole cards
         loadingSpinner.style.display = 'flex';
         
-        // Clear previous results
-        probabilitiesContainer.innerHTML = '';
-        bestFlopsList.innerHTML = '';
-        worstFlopsList.innerHTML = '';
+        // Clear previous results (but keep containers)
+        // Note: We are now clearing inside display functions to handle placeholders better
+        // probabilitiesContainer.innerHTML = ''; 
+        // bestFlopsList.innerHTML = '';
+        // worstFlopsList.innerHTML = '';
         
         // Update titles based on flop selection state
         if (selectedFlopCards.length === MAX_FLOP_CARDS) {
-            // Flop is fully selected, change titles to "Next Cards" and hide worst cards section
             bestFlopsTitle.textContent = 'Best Turn Cards';
-            worstFlopsTitle.parentElement.style.display = 'none'; // Hide worst cards section
+            worstFlopsTitle.parentElement.style.display = 'none'; 
         } else {
-            // Flop is not fully selected, use default titles and show both sections
             bestFlopsTitle.textContent = 'Best Flops';
             worstFlopsTitle.textContent = 'Worst Flops';
-            worstFlopsTitle.parentElement.style.display = 'block'; // Show worst cards section
+            worstFlopsTitle.parentElement.style.display = 'block'; 
         }
         
         console.log("Sending to worker for analytics:", {
@@ -338,145 +341,27 @@ document.addEventListener('DOMContentLoaded', () => {
             riverCard: selectedRiverCard
         });
     }
-    
-    function clearAnalytics() {
-        probabilitiesContainer.innerHTML = '<p>Select two hole cards to see probabilities.</p>';
-        bestFlopsList.innerHTML = '';
-        worstFlopsList.innerHTML = '';
+
+    // Function to display the placeholder state for analytics
+    function displayPlaceholderAnalytics() {
+        loadingSpinner.style.display = 'none'; // Ensure spinner is hidden
+        
+        // Display probabilities at 0%
+        displayProbabilities(defaultProbabilities);
+        
+        // Display placeholder text in flop lists
+        const placeholderText = 'Select 2 hole cards';
+        displayFlops([{ handName: placeholderText, flops: [] }], [{ handName: placeholderText, flops: [] }]);
+        
+        // Reset titles to default
         bestFlopsTitle.textContent = 'Best Flops';
         worstFlopsTitle.textContent = 'Worst Flops';
-        worstFlopsTitle.parentElement.style.display = 'block';
-        updateHandNameDisplay(null); // Reset hand name display
-    }
+        worstFlopsTitle.parentElement.style.display = 'block'; // Ensure worst is visible
 
-    // Function to update the hand name display
-    function updateHandNameDisplay(bestGroups, bestHand) {
-        // Reset all styling classes
-        handNameElement.className = 'hand-name';
-        
-        if (!bestGroups || bestGroups.length === 0) {
-            handNameElement.textContent = 'Select cards to see your hand';
-            currentHandElement.textContent = 'Current hand: Select cards to see your current hand';
-            return;
-        }
-        
-        // If we have a complete hand (flop + turn + river or just flop)
-        if (selectedFlopCards.length === MAX_FLOP_CARDS) {
-            // Get the current hand type from the first group (highest ranked)
-            const handName = bestGroups[0].handName;
-            
-            // Add class for styling based on hand type
-            const className = handName.toLowerCase().replace(/\s+/g, '-');
-            handNameElement.classList.add(className);
-            
-            // Use the provided best hand if available, otherwise calculate it
-            const cardsToDisplay = bestHand || findBestHand([...selectedHoleCards, ...selectedFlopCards, 
-                                       ...(selectedTurnCard ? [selectedTurnCard] : []), 
-                                       ...(selectedRiverCard ? [selectedRiverCard] : [])]);
-            
-            const bestHandDisplay = cardsToDisplay.map(card => formatCard(card, true)).join(' ');
-            
-            // Display the hand name and cards without the explanatory text
-            handNameElement.innerHTML = `${handName}: ${bestHandDisplay}`;
-            
-            // Update current hand display
-            updateCurrentHandDisplay(handName, cardsToDisplay);
-        } else if (selectedHoleCards.length === MAX_HOLE_CARDS) {
-            // Just hole cards - show what hands are possible
-            const topHandName = bestGroups[0].handName;
-            
-            // For hole cards only, show the hole cards themselves
-            const holeCardsDisplay = selectedHoleCards.map(card => formatCard(card, true)).join(' ');
-            
-            // Match the format of the complete hand display
-            handNameElement.innerHTML = `Best possible: ${topHandName} ${holeCardsDisplay}`;
-            
-            // Add class for styling
-            const className = topHandName.toLowerCase().replace(/\s+/g, '-');
-            handNameElement.classList.add(className);
-            
-            // Update current hand display for hole cards only
-            const currentHand = evaluateCurrentHand(selectedHoleCards);
-            updateCurrentHandDisplay(currentHand.handName, selectedHoleCards);
-        } else {
-            // Default state
-            handNameElement.textContent = 'Select cards to see your hand';
-            currentHandElement.textContent = 'Current hand: Select cards to see your current hand';
-        }
+        // Update hand name displays to initial state
+        updateHandNameDisplay(null, null); // Will show default text
+        updateCurrentHandDisplay(null, null); // Will show default text
     }
-    
-    // Function to update the current hand display
-    function updateCurrentHandDisplay(handName, cards) {
-        // Reset styling classes
-        currentHandElement.className = 'hand-name';
-        
-        // Add class for styling based on hand type
-        const className = handName.toLowerCase().replace(/\s+/g, '-');
-        currentHandElement.classList.add(className);
-        
-        // Create the display text with the cards
-        const cardsDisplay = Array.isArray(cards) ? 
-            cards.map(card => formatCard(card, true)).join(' ') : '';
-        
-        // Update the display
-        currentHandElement.innerHTML = `Current hand: ${handName} ${cardsDisplay}`;
-    }
-    
-    // Function to evaluate the current hand with just the cards we have
-    function evaluateCurrentHand(cards) {
-        if (!cards || cards.length < 2) {
-            return { handName: 'High Card', rank: 1 };
-        }
-        
-        // If we have 5 or more cards, find the best 5-card hand
-        if (cards.length >= 5) {
-            return findBestHand(cards);
-        }
-        
-        // For fewer than 5 cards, evaluate what we have
-        // Pair check
-        const ranks = cards.map(card => card.substring(0, card.length - 1));
-        const rankCounts = {};
-        
-        ranks.forEach(rank => {
-            rankCounts[rank] = (rankCounts[rank] || 0) + 1;
-        });
-        
-        const maxCount = Math.max(...Object.values(rankCounts));
-        
-        if (maxCount === 2) {
-            return { handName: 'Pair', rank: 2 };
-        }
-        
-        if (maxCount === 3) {
-            return { handName: 'Three of a Kind', rank: 4 };
-        }
-        
-        if (maxCount === 4) {
-            return { handName: 'Four of a Kind', rank: 8 };
-        }
-        
-        // Default to high card
-        return { handName: 'High Card', rank: 1 };
-    }
-
-    // Helper function to find the best 5-card hand from the given cards
-    function findBestHand(cards) {
-        // Logic to find the best 5-card hand
-        // This is a simplified version that just returns the first 5 cards
-        // In a real implementation, we would evaluate all possible 5-card combinations
-        // and return the best one according to poker hand rankings
-        
-        // For now, we'll just return the first 5 cards or all cards if less than 5
-        return cards.slice(0, 5);
-    }
-
-    // Initialize UI
-    createCardButtons();
-    updateHoleCardsDisplay();
-    updateCommunityCardsDisplay();
-    updateCardButtonStates();
-    clearAnalytics();
 
     // Event Listener for the Worker
     worker.onmessage = function(e) {
@@ -489,33 +374,67 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Process results
-        const { probabilities, bestFlopGroups, worstFlopGroups, hasTurn, bestHand } = e.data;
+        // Process results from worker
+        const { 
+            probabilities, 
+            bestFlopGroups, 
+            worstFlopGroups, 
+            currentHandName, 
+            currentBestHandCards, 
+            hasTurn, 
+            hasRiver 
+        } = e.data;
         
-        // Update hand name display if we have complete cards or best options
-        updateHandNameDisplay(bestFlopGroups, bestHand);
+        // Update the main hand name display (best possible)
+        // If we have a full board, use the current hand name
+        if (hasRiver) {
+            updateHandNameDisplay(currentHandName, currentBestHandCards);
+        } else if (bestFlopGroups && bestFlopGroups.length > 0) {
+            // Otherwise show the best potential hand from the groups
+            const bestPotentialHandName = bestFlopGroups[0].handName;
+            const bestPotentialCards = selectedHoleCards; // Show hole cards for potential
+            updateHandNameDisplay(bestPotentialHandName, bestPotentialCards, true);
+        } else {
+            updateHandNameDisplay('High Card', selectedHoleCards); // Default if no groups
+        }
+        
+        // Update the "Current Hand" display with the accurate hand from the worker
+        if (currentHandName && currentBestHandCards) {
+            updateCurrentHandDisplay(currentHandName, currentBestHandCards);
+        } else {
+            // Fallback for initial state (hole cards only) - evaluate locally
+            const currentHandLocal = evaluateCurrentHand(selectedHoleCards);
+            updateCurrentHandDisplay(currentHandLocal.handName, selectedHoleCards);
+        }
         
         // Update titles based on selected cards
-        if (selectedFlopCards.length === MAX_FLOP_CARDS) {
-            // Hide worst flops section
+        if (hasRiver) {
+            // Hide flop/turn/river sections if river is dealt
+            bestFlopsTitle.parentElement.style.display = 'none';
             worstFlopsTitle.parentElement.style.display = 'none';
-            
-            if (selectedTurnCard) {
-                // If turn is selected, show best river cards
-                bestFlopsTitle.textContent = 'Best River Cards';
-            } else {
-                // If only flop is selected, show best turn cards
-                bestFlopsTitle.textContent = 'Best Turn Cards';
-            }
+        } else if (hasTurn) {
+            // If turn is selected, show best river cards
+            bestFlopsTitle.textContent = 'Best River Cards';
+            bestFlopsTitle.parentElement.style.display = 'block';
+            worstFlopsTitle.parentElement.style.display = 'none'; // Hide worst
+        } else if (selectedFlopCards.length === MAX_FLOP_CARDS) {
+            // If only flop is selected, show best turn cards
+            bestFlopsTitle.textContent = 'Best Turn Cards';
+            bestFlopsTitle.parentElement.style.display = 'block';
+            worstFlopsTitle.parentElement.style.display = 'none'; // Hide worst
         } else {
-            // Default titles and show both sections
+            // Default titles (hole cards only)
             bestFlopsTitle.textContent = 'Best Flops';
             worstFlopsTitle.textContent = 'Worst Flops';
+            bestFlopsTitle.parentElement.style.display = 'block';
             worstFlopsTitle.parentElement.style.display = 'block';
         }
         
+        // Display probabilities and flops/next cards
         displayProbabilities(probabilities);
-        displayFlops(bestFlopGroups, worstFlopGroups);
+        if (!hasRiver) {
+            displayFlops(bestFlopGroups, worstFlopGroups); // Only display if river not dealt
+        }
     };
 
     worker.onerror = function(error) {
@@ -548,14 +467,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         probabilitiesContainer.appendChild(header);
         
-        // Filter and sort hand types by probability (descending)
-        const handTypes = Object.keys(probabilities)
-            .filter(type => probabilities[type] > 0.01) // Filter out near-zero probabilities
-            .sort((a, b) => probabilities[b] - probabilities[a]);
+        // Ensure we always display all hand types, even if probability is 0
+        const handTypes = DISPLAY_HAND_TYPES; // Use the constant list
         
         // Create a probability bar for each hand type
         handTypes.forEach(handType => {
-            const probability = probabilities[handType];
+            const probability = probabilities[handType] || 0; // Default to 0 if not present
             
             // Create container for this hand type
             const handContainer = document.createElement('div');
@@ -612,13 +529,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Function to generate appropriate message based on selected cards
         function getMessage(handType, probability) {
-            if (selectedRiverCard) {
+            if (selectedHoleCards.length < MAX_HOLE_CARDS) {
+                return 'Select 2 hole cards to see calculated odds.';
+            } else if (selectedRiverCard) {
                 return `This is your final hand.`;
             } else if (selectedTurnCard) {
                 return `You have a ${probability.toFixed(1)}% chance of making a ${handType} after the river card.`;
             } else if (selectedFlopCards.length === MAX_FLOP_CARDS) {
                 return `You have a ${probability.toFixed(1)}% chance of making a ${handType} by the river.`;
             } else {
+                // This case (2 hole cards, no flop) should use probabilities from the worker
                 return `You have a ${probability.toFixed(1)}% chance of making a ${handType} with your hole cards.`;
             }
         }
@@ -639,22 +559,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
+        const placeholderText = "Select 2 hole cards";
+        
         // Display best groups
-        if (bestGroups.length > 0) {
+        if (bestGroups.length > 0 && bestGroups[0].handName !== placeholderText) {
             bestGroups.forEach(group => {
                 renderGroup(group, bestFlopsList, displayType);
             });
         } else {
-            bestFlopsList.innerHTML = '<li>No data available</li>';
+            bestFlopsList.innerHTML = `<li class="placeholder-text">${bestGroups[0]?.handName || placeholderText}</li>`;
         }
         
         // Display worst groups
-        if (worstGroups.length > 0) {
+        if (worstGroups.length > 0 && worstGroups[0].handName !== placeholderText) {
             worstGroups.forEach(group => {
                 renderGroup(group, worstFlopsList, displayType);
             });
         } else {
-            worstFlopsList.innerHTML = '<li>No data available</li>';
+            worstFlopsList.innerHTML = `<li class="placeholder-text">${worstGroups[0]?.handName || placeholderText}</li>`;
         }
     }
     
@@ -767,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateHoleCardsDisplay();
         updateCommunityCardsDisplay();
         updateCardButtonStates();
-        clearAnalytics();
+        updateAnalytics();
         
         // Reset titles and make sure worst section is visible
         bestFlopsTitle.textContent = 'Best Flops';
@@ -780,4 +702,125 @@ document.addEventListener('DOMContentLoaded', () => {
         currentHandElement.className = 'hand-name';
         currentHandElement.textContent = 'Current hand: Select cards to see your current hand';
     });
+
+    // Function to update the hand name display
+    function updateHandNameDisplay(handName, cards, isPotential = false) {
+        handNameElement.innerHTML = ''; // Clear previous content
+        handNameElement.className = 'hand-name'; // Reset class
+
+        if (!handName || !cards) {
+            handNameElement.textContent = 'Select cards to see your hand';
+            return;
+        }
+
+        // Add class for styling based on hand type
+        const className = handName.toLowerCase().replace(/\s+/g, '-');
+        handNameElement.classList.add(className);
+
+        // Create label span
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'hand-label'; // Add class for potential styling
+        labelSpan.textContent = isPotential ? 'Best possible:' : handName + ':'; // Use hand name as label if not potential
+        labelSpan.style.display = 'block'; // Force line break
+
+        // Create hand details span
+        const detailsSpan = document.createElement('span');
+        detailsSpan.className = 'hand-details'; // Add class for potential styling
+        const cardsDisplay = cards.map(card => formatCard(card, true)).join(' ');
+        detailsSpan.innerHTML = isPotential ? `${handName} ${cardsDisplay}` : cardsDisplay; // Only show cards if not potential
+        detailsSpan.style.display = 'block'; // Force line break
+        
+        // Append spans
+        handNameElement.appendChild(labelSpan);
+        handNameElement.appendChild(detailsSpan);
+    }
+
+    // Function to update the current hand display
+    function updateCurrentHandDisplay(handName, cards) {
+        currentHandElement.innerHTML = ''; // Clear previous content
+        currentHandElement.className = 'hand-name'; // Reset class
+        
+        if (!handName || !cards) {
+            currentHandElement.textContent = 'Current hand: Select cards';
+            return;
+        }
+        
+        // Add class for styling based on hand type
+        const className = handName.toLowerCase().replace(/\s+/g, '-');
+        currentHandElement.classList.add(className);
+        
+        // Create label span
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'hand-label';
+        labelSpan.textContent = 'Current hand:';
+        labelSpan.style.display = 'block';
+
+        // Create hand details span
+        const detailsSpan = document.createElement('span');
+        detailsSpan.className = 'hand-details';
+        const cardsDisplay = Array.isArray(cards) ? 
+            cards.map(card => formatCard(card, true)).join(' ') : '';
+        detailsSpan.innerHTML = `${handName} ${cardsDisplay}`;
+        detailsSpan.style.display = 'block';
+        
+        // Append spans
+        currentHandElement.appendChild(labelSpan);
+        currentHandElement.appendChild(detailsSpan);
+    }
+
+    // Function to evaluate the current hand with just the cards we have
+    function evaluateCurrentHand(cards) {
+        if (!cards || cards.length < 2) {
+            return { handName: 'High Card', rank: 1 };
+        }
+        
+        // If we have 5 or more cards, find the best 5-card hand
+        if (cards.length >= 5) {
+            return findBestHand(cards);
+        }
+        
+        // For fewer than 5 cards, evaluate what we have
+        // Pair check
+        const ranks = cards.map(card => card.substring(0, card.length - 1));
+        const rankCounts = {};
+        
+        ranks.forEach(rank => {
+            rankCounts[rank] = (rankCounts[rank] || 0) + 1;
+        });
+        
+        const maxCount = Math.max(...Object.values(rankCounts));
+        
+        if (maxCount === 2) {
+            return { handName: 'Pair', rank: 2 };
+        }
+        
+        if (maxCount === 3) {
+            return { handName: 'Three of a Kind', rank: 4 };
+        }
+        
+        if (maxCount === 4) {
+            return { handName: 'Four of a Kind', rank: 8 };
+        }
+        
+        // Default to high card
+        return { handName: 'High Card', rank: 1 };
+    }
+
+    // Helper function to find the best 5-card hand from the given cards
+    function findBestHand(cards) {
+        // Logic to find the best 5-card hand
+        // This is a simplified version that just returns the first 5 cards
+        // In a real implementation, we would evaluate all possible 5-card combinations
+        // and return the best one according to poker hand rankings
+        
+        // For now, we'll just return the first 5 cards or all cards if less than 5
+        return cards.slice(0, 5);
+    }
+
+    // Initialize UI
+    createCardButtons();
+    updateHoleCardsDisplay();
+    updateCommunityCardsDisplay();
+    updateCardButtonStates();
+    updateAnalytics();
 }); 

@@ -20,16 +20,32 @@
         <div class="analytics-display">
             <div class="selected-cards-container">
                 <div class="hole-cards-centered">
-                    <div id="selected-cards-display" class="centered-hole-cards"></div>
+                    <div id="selected-cards-display" class="centered-hole-cards">
+                        <!-- Hole card spans go here via JS -->
+                    </div>
                 </div>
-                <div class="community-cards-row">
-                    <div id="community-cards-display" class="community-cards-display"></div>
+                <!-- Wrapper for right column -->
+                <div class="hand-community-column">
+                    <div id="hand-name-display" class="hand-name-display">
+                        <span id="hand-name" class="hand-name">Select cards to see your hand</span>
+                    </div>
+                    <div id="current-hand-display" class="hand-name-display">
+                        <span id="current-hand" class="hand-name">Current hand: Select cards to see your current hand</span>
+                    </div>
+                    <div class="community-cards-row">
+                        <div id="community-cards-display" class="community-cards-display"></div>
+                    </div>
                 </div>
-                <div id="hand-name-display" class="hand-name-display">
-                    <span id="hand-name" class="hand-name">Select cards to see your hand</span>
+            </div>
+
+            <div class="flop-lists">
+                <div class="flop-list">
+                    <h3 id="best-flops-title">Best Flops</h3>
+                    <ul id="best-flops-list"></ul>
                 </div>
-                <div id="current-hand-display" class="hand-name-display">
-                    <span id="current-hand" class="hand-name">Current hand: Select cards to see your current hand</span>
+                <div class="flop-list">
+                    <h3 id="worst-flops-title">Worst Flops</h3>
+                    <ul id="worst-flops-list"></ul>
                 </div>
             </div>
 
@@ -44,17 +60,6 @@
                     <p>Calculating...</p>
                 </div>
                 <div class="probabilities"></div>
-            </div>
-
-            <div class="flop-lists">
-                <div class="flop-list">
-                    <h3 id="best-flops-title">Best Flops</h3>
-                    <ul id="best-flops-list"></ul>
-                </div>
-                <div class="flop-list">
-                    <h3 id="worst-flops-title">Worst Flops</h3>
-                    <ul id="worst-flops-list"></ul>
-                </div>
             </div>
         </div>
     </div>
